@@ -4,7 +4,7 @@
 <body>
   <% include partials/_header %>
   <ul>
-    <li style="font-size: 15"><%= shortURL %> ==> <%= fullURL %></li>
+    <li><%= shortURL %> ==> <%= fullURL %></li>
   </ul>
   <form action="/urls/<%=shortURL%>" method="POST">
       <label for="longURL">Update the URL:</label>
