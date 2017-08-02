@@ -4,10 +4,18 @@
 <body>
   <% include partials/_header %>
   <ul>
-    <% for (var url in urls) { %>
-      <li><form method="POST" action="/urls/<%=url%>/delete"><%= url %> --> <%= urls[url] %> <a href="/urls/<%=url%>">Edit</a> <input type="submit" value="Delete"></form></li>
+    <% for (const url in urls) { %>
+      <li>
+        <%= url %> --> <%= urls[url] %>
+        <a href="/urls/<%= url %>">Edit</a>
+        <form method="POST" action="/urls/<%= url %>/delete">
+          <input type="submit" value="Delete">
+        </form>
+      </li>
     <% } %>
   </ul>
-  <a href="/urls/new">Shorten Url</a>
+  <p>
+    <a href="/urls/new">Shorten Url</a>
+  </p>
 </body>
 </html>
