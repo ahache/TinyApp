@@ -29,6 +29,16 @@ const users = {
   }
 }
 
+function getUsersUrls(user) {
+  let urlsByOwner = {};
+  for (const url in urlDatabase) {
+    if (urlDatabase[url].userID == user.id) {
+      urlsByOwner[url] = urlDatabase[url];
+    }
+  }
+  return urlsByOwner;
+}
+
 const app = express();
 
 const port = process.env.PORT || 8080;
@@ -39,16 +49,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  const userCookie = req.cookies['user_id'];
-  let user = null;
-  if (userCookie) {
-    user = users[userCookie];
-  }
-  const templateVars = {
-    urls: urlDatabase,
-    user: user
-  };
-  res.render("urls_index", templateVars);
+  res.redirect("/urls");
 });
 
 app.get("/urls/new", (req, res) => {
@@ -70,9 +71,12 @@ app.get("/urls", (req, res) => {
   let user = null;
   if (userCookie) {
     user = users[userCookie];
+  } else {
+    res.render("prompt");
   }
+  const usersUrls = getUsersUrls(user);
   const templateVars = {
-    urls: urlDatabase,
+    urls: usersUrls,
     user: user
   };
   res.render("urls_index", templateVars);
@@ -83,6 +87,8 @@ app.get("/urls/:id", (req, res) => {
   let user = null;
   if (userCookie) {
     user = users[userCookie];
+  } else {
+    res.render("prompt");
   }
   let id = req.params.id;
   const templateVars = {
