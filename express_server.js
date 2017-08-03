@@ -12,8 +12,8 @@ function generateRandomString() {
 }
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": { "userID": "user1", "longURL": "http://www.lighthouselabs.ca" },
+  "9sm5xK": { "userID": "user2", "longURL": "http://www.google.com" }
 };
 
 const users = {
@@ -56,6 +56,8 @@ app.get("/urls/new", (req, res) => {
   let user = null;
   if (userCookie) {
     user = users[userCookie];
+  } else {
+    res.redirect("/login");
   }
   const templateVars = {
     user: user
@@ -82,17 +84,17 @@ app.get("/urls/:id", (req, res) => {
   if (userCookie) {
     user = users[userCookie];
   }
+  let id = req.params.id;
   const templateVars = {
     urls: urlDatabase,
     user: user,
-    shortURL: req.params.id,
-    fullURL: urlDatabase[req.params.id]
+    shortURL: id,
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
+  const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
@@ -106,18 +108,32 @@ app.get("/login", (req, res) => {
 
 app.post("/urls", (req, res) => {
   const id = generateRandomString();
-  urlDatabase[id] = req.body.longURL;
+  const userID = req.cookies['user_id'];
+  const url = req.body.longURL;
+  urlDatabase[id] = { "userID": userID, "longURL": url };
   res.redirect(`/urls/${id}`);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id];
-  res.redirect("/urls");
+  const currentUser = req.cookies['user_id'];
+  const owner = urlDatabase[req.params.id].userID;
+  if (currentUser !== owner) {
+    res.status(400).send("You can only delete your own urls")
+  } else {
+    delete urlDatabase[req.params.id];
+    res.redirect("/urls");
+  }
 });
 
 app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect("/urls");
+  const currentUser = req.cookies['user_id'];
+  const owner = urlDatabase[req.params.id].userID;
+  if (currentUser !== owner) {
+    res.status(400).send("You can only update your own urls")
+  } else {
+    urlDatabase[req.params.id].longURL = req.body.longURL;
+    res.redirect("/urls");
+  }
 });
 
 app.post("/login", (req, res) => {
