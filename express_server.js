@@ -16,6 +16,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  "user1": {
+    id: "user1",
+    email: "boater@gmail.com",
+    password: "Pass7774"
+  },
+  "user2": {
+    id: "user2",
+    email: "redcars@gmail.com",
+    password: "funkyTown1414"
+  }
+}
+
 const app = express();
 
 const port = process.env.PORT || 8080;
@@ -63,6 +76,10 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
 app.post("/urls", (req, res) => {
   const id = generateRandomString();
   urlDatabase[id] = req.body.longURL;
@@ -87,6 +104,18 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   res.clearCookie('username');
   res.redirect("/urls");
+});
+
+app.post("/register", (req, res) => {
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  if (!email || !password) {
+    res.status(400).send("Must Enter Email and Password");
+  }
+  users[id] = { id, email, password };
+  res.cookie('user_id', id);
+  res.redirect('/urls');
 });
 
 app.listen(port, () => {
