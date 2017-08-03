@@ -1,7 +1,7 @@
 <h1>TinyApp</h1>
-<% if (username) { %>
+<% if (user) { %>
   <form method="POST" action="/logout">
-    Logged in as: <%= username %>
+    Logged in as: <%= user.email %>
     <input type="submit" value="Logout">
   </form>
 <% } else { %>

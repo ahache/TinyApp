@@ -39,32 +39,52 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
+  const userCookie = req.cookies['user_id'];
+  let user = null;
+  if (userCookie) {
+    user = users[userCookie];
+  }
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    user: user
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
+  const userCookie = req.cookies['user_id'];
+  let user = null;
+  if (userCookie) {
+    user = users[userCookie];
+  }
   const templateVars = {
-    username: req.cookies["username"]
+    user: user
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls", (req, res) => {
+  const userCookie = req.cookies['user_id'];
+  let user = null;
+  if (userCookie) {
+    user = users[userCookie];
+  }
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    user: user
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
+  const userCookie = req.cookies['user_id'];
+  let user = null;
+  if (userCookie) {
+    user = users[userCookie];
+  }
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"],
+    user: user,
     shortURL: req.params.id,
     fullURL: urlDatabase[req.params.id]
   };
