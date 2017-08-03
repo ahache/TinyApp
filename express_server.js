@@ -100,6 +100,10 @@ app.get("/register", (req, res) => {
   res.render("register");
 });
 
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
 app.post("/urls", (req, res) => {
   const id = generateRandomString();
   urlDatabase[id] = req.body.longURL;
@@ -117,12 +121,26 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
+  const email = req.body.email;
+  const password = req.body.password;
+  if (!email || !password) {
+    res.status(400).send("Must Enter Email and Password");
+  }
+  for (const user in users) {
+    if (users[user].email === email) {
+      if (users[user].password === password) {
+        res.cookie('user_id', users[user].id);
+        res.redirect('/urls');
+      } else {
+        res.status(403).send("Wrong Password");
+      }
+    }
+  }
+  res.status(403).send("Cannot find user");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
