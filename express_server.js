@@ -40,7 +40,12 @@ app.use(cookieSession({
 }));
 
 app.get("/", (req, res) => {
-  res.redirect("/urls");
+  const user = req.session.user_id;
+  if (user) {
+    res.redirect("/urls");
+  } else {
+    res.render("prompt");
+  }
 });
 
 app.get("/urls/new", (req, res) => {
@@ -78,6 +83,10 @@ app.get("/urls/:id", (req, res) => {
   } else {
     const user = users[userCookie];
     const id = req.params.id;
+    if (!urlDatabase[id]) {
+      res.status(400).send("Short Url does not exist");
+      return;
+    }
     const templateVars = {
       urls: urlDatabase,
       user: user,
@@ -88,16 +97,31 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
+  const shortURL = req.params.shortURL;
+  if (!urlDatabase[shortURL]) {
+    res.status(400).send("Short Url does not exist");
+    return;
+  }
+  const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 
 app.get("/register", (req, res) => {
-  res.render("register");
+  const user = req.session.user_id;
+  if (user) {
+    res.redirect("/urls");
+  } else {
+    res.render("register");
+  }
 });
 
 app.get("/login", (req, res) => {
-  res.render("login");
+  const user = req.session.user_id;
+  if (user) {
+    res.redirect("/urls");
+  } else {
+    res.render("login");
+  }
 });
 
 app.post("/urls", (req, res) => {
@@ -110,6 +134,10 @@ app.post("/urls", (req, res) => {
 
 app.post("/urls/:id/delete", (req, res) => {
   const currentUser = req.session.user_id;
+  if (!currentUser) {
+    res.status(400).send("You must log in");
+    return;
+  }
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
     res.status(400).send("You can only delete your own urls")
@@ -121,6 +149,10 @@ app.post("/urls/:id/delete", (req, res) => {
 
 app.post("/urls/:id", (req, res) => {
   const currentUser = req.session.user_id;
+  if (!currentUser) {
+    res.status(400).send("Must be logged in to view urls");
+    return;
+  }
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
     res.status(400).send("You can only update your own urls")
@@ -157,6 +189,12 @@ app.post("/logout", (req, res) => {
 app.post("/register", (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
+  for (const user in users) {
+    if (users[user].email === email) {
+      res.status(400).send("Email is already registered");
+      return;
+    }
+  }
   const password = req.body.password;
   if (!email || !password) {
     res.status(400).send("Must Enter Email and Password");
