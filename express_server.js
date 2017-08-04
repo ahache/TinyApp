@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
+const methodOverride = require('method-override');
 
 function generateRandomString() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -32,6 +33,7 @@ const port = process.env.PORT || 8080;
 
 app.set("view engine", "ejs");
 
+app.use(methodOverride('_method'));
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
@@ -132,7 +134,8 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${id}`);
 });
 
-app.post("/urls/:id/delete", (req, res) => {
+// delete
+app.delete("/urls/:id/delete", (req, res) => {
   const currentUser = req.session.user_id;
   if (!currentUser) {
     res.status(400).send("You must log in");
@@ -147,7 +150,8 @@ app.post("/urls/:id/delete", (req, res) => {
   }
 });
 
-app.post("/urls/:id", (req, res) => {
+// put
+app.put("/urls/:id", (req, res) => {
   const currentUser = req.session.user_id;
   if (!currentUser) {
     res.status(400).send("Must be logged in to view urls");
@@ -167,6 +171,7 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
   if (!email || !password) {
     res.status(400).send("Must Enter Email and Password");
+    return;
   }
   for (const user in users) {
     if (users[user].email === email) {
@@ -175,6 +180,7 @@ app.post("/login", (req, res) => {
         res.redirect('/urls');
       } else {
         res.status(403).send("Wrong Password");
+        return;
       }
     }
   }

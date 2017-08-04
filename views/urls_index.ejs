@@ -8,7 +8,7 @@
       <li>
         <%= url %> --> <%= urls[url].longURL %>
         <a href="/urls/<%= url %>">Edit</a>
-        <form method="POST" action="/urls/<%= url %>/delete">
+        <form method="POST" action="/urls/<%=url%>/delete?_method=DELETE">
           <input type="submit" value="Delete">
         </form>
       </li>
