@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
+const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
 
 function generateRandomString() {
@@ -33,14 +33,18 @@ const port = process.env.PORT || 8080;
 app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  secret: 'cookiemonster',
+  maxAge: 24 * 60 * 60 * 1000
+}));
 
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
 app.get("/urls/new", (req, res) => {
-  const userCookie = req.cookies['user_id'];
+  const userCookie = req.session.user_id;
   if (userCookie === undefined) {
     res.redirect("/login");
   } else {
@@ -53,7 +57,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userCookie = req.cookies['user_id'];
+  const userCookie = req.session.user_id;
   if (userCookie === undefined) {
     res.render("prompt");
   } else {
@@ -68,7 +72,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const userCookie = req.cookies['user_id'];
+  const userCookie = req.session.user_id;
   if (userCookie === undefined) {
     res.render("prompt");
   } else {
@@ -98,14 +102,14 @@ app.get("/login", (req, res) => {
 
 app.post("/urls", (req, res) => {
   const id = generateRandomString();
-  const userID = req.cookies['user_id'];
+  const userID = req.session.user_id;
   const url = req.body.longURL;
   urlDatabase[id] = { "userID": userID, "longURL": url };
   res.redirect(`/urls/${id}`);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const currentUser = req.cookies['user_id'];
+  const currentUser = req.session.user_id;
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
     res.status(400).send("You can only delete your own urls")
@@ -116,7 +120,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
-  const currentUser = req.cookies['user_id'];
+  const currentUser = req.session.user_id;
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
     res.status(400).send("You can only update your own urls")
@@ -135,7 +139,7 @@ app.post("/login", (req, res) => {
   for (const user in users) {
     if (users[user].email === email) {
       if (bcrypt.compareSync(password, users[user].hashed_password)) {
-        res.cookie('user_id', users[user].id);
+        req.session.user_id = users[user].id;
         res.redirect('/urls');
       } else {
         res.status(403).send("Wrong Password");
@@ -146,21 +150,20 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect("/urls");
 });
 
 app.post("/register", (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
-
   const password = req.body.password;
   if (!email || !password) {
     res.status(400).send("Must Enter Email and Password");
   }
   const hashed_password = bcrypt.hashSync(password, 10);
   users[id] = { id, email, hashed_password };
-  res.cookie('user_id', id);
+  req.session.user_id = id;
   res.redirect('/urls');
 });
 
