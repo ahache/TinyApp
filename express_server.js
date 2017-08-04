@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcrypt");
 
 function generateRandomString() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -11,23 +12,9 @@ function generateRandomString() {
   return randomString;
 }
 
-const urlDatabase = {
-  "b2xVn2": { "userID": "user1", "longURL": "http://www.lighthouselabs.ca" },
-  "9sm5xK": { "userID": "user2", "longURL": "http://www.google.com" }
-};
+const urlDatabase = {};
 
-const users = {
-  "user1": {
-    id: "user1",
-    email: "boater@gmail.com",
-    password: "Pass7774"
-  },
-  "user2": {
-    id: "user2",
-    email: "redcars@gmail.com",
-    password: "funkyTown1414"
-  }
-}
+const users = {};
 
 function getUsersUrls(user) {
   let urlsByOwner = {};
@@ -54,49 +41,46 @@ app.get("/", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const userCookie = req.cookies['user_id'];
-  let user = null;
-  if (userCookie) {
-    user = users[userCookie];
-  } else {
+  if (userCookie === undefined) {
     res.redirect("/login");
+  } else {
+    const user = users[userCookie];
+    const templateVars = {
+      user: user
+    }
+    res.render("urls_new", templateVars);
   }
-  const templateVars = {
-    user: user
-  };
-  res.render("urls_new", templateVars);
 });
 
 app.get("/urls", (req, res) => {
   const userCookie = req.cookies['user_id'];
-  let user = null;
-  if (userCookie) {
-    user = users[userCookie];
-  } else {
+  if (userCookie === undefined) {
     res.render("prompt");
+  } else {
+    const user = users[userCookie];
+    const usersUrls = getUsersUrls(user);
+    const templateVars = {
+      urls: usersUrls,
+      user: user
+    };
+    res.render("urls_index", templateVars);
   }
-  const usersUrls = getUsersUrls(user);
-  const templateVars = {
-    urls: usersUrls,
-    user: user
-  };
-  res.render("urls_index", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
   const userCookie = req.cookies['user_id'];
-  let user = null;
-  if (userCookie) {
-    user = users[userCookie];
-  } else {
+  if (userCookie === undefined) {
     res.render("prompt");
+  } else {
+    const user = users[userCookie];
+    const id = req.params.id;
+    const templateVars = {
+      urls: urlDatabase,
+      user: user,
+      shortURL: id
+    }
+    res.render("urls_show", templateVars);
   }
-  let id = req.params.id;
-  const templateVars = {
-    urls: urlDatabase,
-    user: user,
-    shortURL: id,
-  };
-  res.render("urls_show", templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -150,7 +134,7 @@ app.post("/login", (req, res) => {
   }
   for (const user in users) {
     if (users[user].email === email) {
-      if (users[user].password === password) {
+      if (bcrypt.compareSync(password, users[user].hashed_password)) {
         res.cookie('user_id', users[user].id);
         res.redirect('/urls');
       } else {
@@ -169,11 +153,13 @@ app.post("/logout", (req, res) => {
 app.post("/register", (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
+
   const password = req.body.password;
   if (!email || !password) {
     res.status(400).send("Must Enter Email and Password");
   }
-  users[id] = { id, email, password };
+  const hashed_password = bcrypt.hashSync(password, 10);
+  users[id] = { id, email, hashed_password };
   res.cookie('user_id', id);
   res.redirect('/urls');
 });
