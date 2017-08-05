@@ -39,15 +39,15 @@ function addVisit(shortURL, visitor_id) {
   } else {
     urlVisits[shortURL] = {
       visits: [{ visitor_id: visitor_id, timeStamp: `${dateString} ${time}` }],
-      uniqueVisits : 1
-    }
+      uniqueVisits: 1
+    };
   }
 }
 
 function getUsersUrls(user) {
   let urlsByOwner = {};
   for (const url in urlDatabase) {
-    if (urlDatabase[url].userID == user.id) {
+    if (urlDatabase[url].userID === user.id) {
       urlsByOwner[url] = urlDatabase[url];
     }
   }
@@ -92,7 +92,7 @@ app.get("/urls/new", (req, res) => {
     const user = users[userCookie];
     const templateVars = {
       user: user
-    }
+    };
     res.render("urls_new", templateVars);
   }
 });
@@ -128,7 +128,7 @@ app.get("/urls/:id", (req, res) => {
       urls: urlDatabase,
       user: user,
       shortURL: id
-    }
+    };
     res.render("urls_show", templateVars);
   }
 });
@@ -179,7 +179,7 @@ app.delete("/urls/:id", (req, res) => {
   }
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
-    res.status(400).send("You can only delete your own urls")
+    res.status(400).send("You can only delete your own urls");
   } else {
     delete urlDatabase[req.params.id];
     res.redirect("/urls");
@@ -194,7 +194,7 @@ app.put("/urls/:id", (req, res) => {
   }
   const owner = urlDatabase[req.params.id].userID;
   if (currentUser !== owner) {
-    res.status(400).send("You can only update your own urls")
+    res.status(400).send("You can only update your own urls");
   } else {
     urlDatabase[req.params.id].longURL = req.body.longURL;
     res.redirect("/urls");
@@ -213,6 +213,7 @@ app.post("/login", (req, res) => {
       if (bcrypt.compareSync(password, users[user].hashed_password)) {
         req.session.user_id = users[user].id;
         res.redirect('/urls');
+        return;
       } else {
         res.status(403).send("Wrong Password");
         return;
