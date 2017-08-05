@@ -4,7 +4,15 @@
 <body>
   <% include partials/_header %>
   <ul>
-    <li><%= shortURL %> ==> <%= urls[shortURL].longURL %></li>
+    <li><a href="/u/<%=shortURL%>"><%= shortURL %></a> ==> <%= urls[shortURL].longURL %></li>
+    <% if (urlVisits[shortURL]) { %>
+      <% const visits = urlVisits[shortURL].visits %>
+      <% for (const visit of visits) { %>
+        <li>User <%= visit.visitor_id %> visited on <%= visit.timeStamp %></li>
+      <% } %>
+      <li>Unique Visitors to this URL : <%= urlVisits[shortURL].uniqueVisits %></li>
+      <li>Total Visitors to this URL : <%= urlVisits[shortURL].visits.length %></li>
+    <% } %>
   </ul>
   <% if (urls[shortURL].userID === user.id) { %>
     <form action="/urls/<%=shortURL%>?_method=PUT" method="POST">

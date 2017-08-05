@@ -17,6 +17,33 @@ const urlDatabase = {};
 
 const users = {};
 
+const urlVisits = {};
+
+function addVisit(shortURL, visitor_id) {
+  const date = new Date();
+  const dateString = date.toDateString();
+  const time = date.toLocaleTimeString("en-US", {timeZone: "America/Los_Angeles"});
+  if (urlVisits[shortURL]) {
+    let found = false;
+    const visits = urlVisits[shortURL].visits;
+    for (const visit of visits) {
+      if (visit.visitor_id === visitor_id) {
+        found = true;
+        break;
+      }
+    }
+    visits.push({ visitor_id: visitor_id, timeStamp: `${dateString} ${time}` });
+    if (!found) {
+      urlVisits[shortURL].uniqueVisits += 1;
+    }
+  } else {
+    urlVisits[shortURL] = {
+      visits: [{ visitor_id: visitor_id, timeStamp: `${dateString} ${time}` }],
+      uniqueVisits : 1
+    }
+  }
+}
+
 function getUsersUrls(user) {
   let urlsByOwner = {};
   for (const url in urlDatabase) {
@@ -40,6 +67,13 @@ app.use(cookieSession({
   secret: 'cookiemonster',
   maxAge: 24 * 60 * 60 * 1000
 }));
+
+app.use(function (req, res, next) {
+  if (!req.session.visitor_id) {
+    req.session.visitor_id = generateRandomString();
+  }
+  next();
+});
 
 app.get("/", (req, res) => {
   const user = req.session.user_id;
@@ -90,6 +124,7 @@ app.get("/urls/:id", (req, res) => {
       return;
     }
     const templateVars = {
+      urlVisits: urlVisits,
       urls: urlDatabase,
       user: user,
       shortURL: id
@@ -99,7 +134,9 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
+  const visitor_id = req.session.visitor_id;
   const shortURL = req.params.shortURL;
+  addVisit(shortURL, visitor_id);
   if (!urlDatabase[shortURL]) {
     res.status(400).send("Short Url does not exist");
     return;
@@ -134,8 +171,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${id}`);
 });
 
-// delete
-app.delete("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   const currentUser = req.session.user_id;
   if (!currentUser) {
     res.status(400).send("You must log in");
@@ -150,7 +186,6 @@ app.delete("/urls/:id/delete", (req, res) => {
   }
 });
 
-// put
 app.put("/urls/:id", (req, res) => {
   const currentUser = req.session.user_id;
   if (!currentUser) {

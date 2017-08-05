@@ -6,9 +6,9 @@
   <ul>
     <% for (const url in urls) { %>
       <li>
-        <%= url %> --> <%= urls[url].longURL %>
+        <a href="/u/<%=url%>"><%= url %></a> --> <%= urls[url].longURL %>
         <a href="/urls/<%= url %>">Edit</a>
-        <form method="POST" action="/urls/<%=url%>/delete?_method=DELETE">
+        <form method="POST" action="/urls/<%=url%>?_method=DELETE">
           <input type="submit" value="Delete">
         </form>
       </li>
