@@ -14,30 +14,37 @@ function generateRandomString() {
 }
 
 const urlDatabase = {};
-
 const users = {};
+const analytics = {};
 
-const urlVisits = {};
-
+// Helper function to populate analytics
+//
+// analytics = {
+//   url: {
+//     visits: [ { visitor_id, timeStamp } ],
+//     uniqueVisits: #
+//   }
+// }
+//
 function addVisit(shortURL, visitor_id) {
   const date = new Date();
   const dateString = date.toDateString();
   const time = date.toLocaleTimeString("en-US", {timeZone: "America/Los_Angeles"});
-  if (urlVisits[shortURL]) {
-    let found = false;
-    const visits = urlVisits[shortURL].visits;
+  if (analytics[shortURL]) {
+    let firstVisit = true;
+    const visits = analytics[shortURL].visits;
     for (const visit of visits) {
       if (visit.visitor_id === visitor_id) {
-        found = true;
+        firstVisit = false;
         break;
       }
     }
     visits.push({ visitor_id: visitor_id, timeStamp: `${dateString} ${time}` });
-    if (!found) {
-      urlVisits[shortURL].uniqueVisits += 1;
+    if (firstVisit) {
+      analytics[shortURL].uniqueVisits += 1;
     }
   } else {
-    urlVisits[shortURL] = {
+    analytics[shortURL] = {
       visits: [{ visitor_id: visitor_id, timeStamp: `${dateString} ${time}` }],
       uniqueVisits: 1
     };
@@ -68,6 +75,7 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000
 }));
 
+// visitor cookie
 app.use(function (req, res, next) {
   if (!req.session.visitor_id) {
     req.session.visitor_id = generateRandomString();
@@ -124,7 +132,7 @@ app.get("/urls/:id", (req, res) => {
       return;
     }
     const templateVars = {
-      urlVisits: urlVisits,
+      analytics: analytics,
       urls: urlDatabase,
       user: user,
       shortURL: id
@@ -192,11 +200,13 @@ app.put("/urls/:id", (req, res) => {
     res.status(400).send("Must be logged in to view urls");
     return;
   }
-  const owner = urlDatabase[req.params.id].userID;
+  const shortURL = req.params.id;
+  const owner = urlDatabase[shortURL].userID;
   if (currentUser !== owner) {
     res.status(400).send("You can only update your own urls");
   } else {
-    urlDatabase[req.params.id].longURL = req.body.longURL;
+    delete analytics[shortURL];
+    urlDatabase[shortURL].longURL = req.body.longURL;
     res.redirect("/urls");
   }
 });

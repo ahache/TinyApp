@@ -5,13 +5,13 @@
   <% include partials/_header %>
   <ul>
     <li><a href="/u/<%=shortURL%>"><%= shortURL %></a> ==> <%= urls[shortURL].longURL %></li>
-    <% if (urlVisits[shortURL]) { %>
-      <% const visits = urlVisits[shortURL].visits %>
+    <% if (analytics[shortURL]) { %>
+      <% const visits = analytics[shortURL].visits %>
       <% for (const visit of visits) { %>
         <li>User <%= visit.visitor_id %> visited on <%= visit.timeStamp %></li>
       <% } %>
-      <li>Unique Visitors to this URL : <%= urlVisits[shortURL].uniqueVisits %></li>
-      <li>Total Visitors to this URL : <%= urlVisits[shortURL].visits.length %></li>
+      <li>Unique Visitors to this URL : <%= analytics[shortURL].uniqueVisits %></li>
+      <li>Total Visitors to this URL : <%= analytics[shortURL].visits.length %></li>
     <% } %>
   </ul>
   <% if (urls[shortURL].userID === user.id) { %>
