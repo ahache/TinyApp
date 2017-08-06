@@ -27,12 +27,15 @@ const analytics = {};
 // }
 //
 function addVisit(shortURL, visitor_id) {
+  // Full date and time
   const date = new Date();
   const dateString = date.toDateString();
   const time = date.toLocaleTimeString("en-US", {timeZone: "America/Los_Angeles"});
+  // Check if url exists in analytics
   if (analytics[shortURL]) {
     let firstVisit = true;
     const visits = analytics[shortURL].visits;
+    // Loop through all visits to check if current visitor has used short link
     for (const visit of visits) {
       if (visit.visitor_id === visitor_id) {
         firstVisit = false;
@@ -51,14 +54,15 @@ function addVisit(shortURL, visitor_id) {
   }
 }
 
+// Return object of urls created by logged in user
 function getUsersUrls(user) {
-  let urlsByOwner = {};
+  let urlsByUser = {};
   for (const url in urlDatabase) {
     if (urlDatabase[url].userID === user.id) {
-      urlsByOwner[url] = urlDatabase[url];
+      urlsByUser[url] = urlDatabase[url];
     }
   }
-  return urlsByOwner;
+  return urlsByUser;
 }
 
 const app = express();
@@ -84,8 +88,8 @@ app.use(function (req, res, next) {
 });
 
 app.get("/", (req, res) => {
-  const user = req.session.user_id;
-  if (user) {
+  const userCookie = req.session.user_id;
+  if (userCookie) {
     res.redirect("/urls");
   } else {
     res.render("prompt");
@@ -94,37 +98,37 @@ app.get("/", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const userCookie = req.session.user_id;
-  if (userCookie === undefined) {
-    res.redirect("/login");
-  } else {
+  if (userCookie) {
     const user = users[userCookie];
     const templateVars = {
       user: user
     };
     res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
   }
 });
 
 app.get("/urls", (req, res) => {
   const userCookie = req.session.user_id;
-  if (userCookie === undefined) {
-    res.render("prompt");
-  } else {
+  if (userCookie) {
     const user = users[userCookie];
+    // Call to helper function
     const usersUrls = getUsersUrls(user);
     const templateVars = {
       urls: usersUrls,
       user: user
     };
     res.render("urls_index", templateVars);
+  } else {
+    res.render("prompt");
   }
 });
 
+// Any logged in user can view a url stats page. Only the owner can update.
 app.get("/urls/:id", (req, res) => {
   const userCookie = req.session.user_id;
-  if (userCookie === undefined) {
-    res.render("prompt");
-  } else {
+  if (userCookie) {
     const user = users[userCookie];
     const id = req.params.id;
     if (!urlDatabase[id]) {
@@ -138,24 +142,27 @@ app.get("/urls/:id", (req, res) => {
       shortURL: id
     };
     res.render("urls_show", templateVars);
+  } else {
+    res.render("prompt");
   }
 });
 
 app.get("/u/:shortURL", (req, res) => {
   const visitor_id = req.session.visitor_id;
   const shortURL = req.params.shortURL;
-  addVisit(shortURL, visitor_id);
   if (!urlDatabase[shortURL]) {
     res.status(400).send("Short Url does not exist");
     return;
   }
+  // Update analytics
+  addVisit(shortURL, visitor_id);
   const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 
 app.get("/register", (req, res) => {
-  const user = req.session.user_id;
-  if (user) {
+  const userCookie = req.session.user_id;
+  if (userCookie) {
     res.redirect("/urls");
   } else {
     res.render("register");
@@ -163,48 +170,44 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const user = req.session.user_id;
-  if (user) {
+  const userCookie = req.session.user_id;
+  if (userCookie) {
     res.redirect("/urls");
   } else {
     res.render("login");
   }
 });
 
+// Update urlDatabase
 app.post("/urls", (req, res) => {
-  const id = generateRandomString();
-  const userID = req.session.user_id;
-  const url = req.body.longURL;
-  urlDatabase[id] = { "userID": userID, "longURL": url };
-  res.redirect(`/urls/${id}`);
+  const shortURL = generateRandomString();
+  const userCookie = req.session.user_id;
+  const longURL = req.body.longURL;
+  urlDatabase[shortURL] = { "userID": userCookie, "longURL": longURL };
+  res.redirect(`/urls/${shortURL}`);
 });
 
 app.delete("/urls/:id", (req, res) => {
-  const currentUser = req.session.user_id;
-  if (!currentUser) {
-    res.status(400).send("You must log in");
-    return;
-  }
-  const owner = urlDatabase[req.params.id].userID;
-  if (currentUser !== owner) {
+  const userCookie = req.session.user_id;
+  const shortURL = req.params.id;
+  const owner = urlDatabase[shortURL].userID;
+  if (userCookie !== owner) {
     res.status(400).send("You can only delete your own urls");
   } else {
-    delete urlDatabase[req.params.id];
+    delete urlDatabase[shortURL];
     res.redirect("/urls");
   }
 });
 
+// Only a logged in owner will have form entry access to this route
 app.put("/urls/:id", (req, res) => {
-  const currentUser = req.session.user_id;
-  if (!currentUser) {
-    res.status(400).send("Must be logged in to view urls");
-    return;
-  }
   const shortURL = req.params.id;
+  const userCookie = req.session.user_id;
   const owner = urlDatabase[shortURL].userID;
-  if (currentUser !== owner) {
+  if (userCookie !== owner) {
     res.status(400).send("You can only update your own urls");
   } else {
+    // Owner has changed link, analytics are reset
     delete analytics[shortURL];
     urlDatabase[shortURL].longURL = req.body.longURL;
     res.redirect("/urls");
@@ -221,6 +224,7 @@ app.post("/login", (req, res) => {
   for (const user in users) {
     if (users[user].email === email) {
       if (bcrypt.compareSync(password, users[user].hashed_password)) {
+        // Successful login, set user cookie
         req.session.user_id = users[user].id;
         res.redirect('/urls');
         return;
@@ -230,7 +234,7 @@ app.post("/login", (req, res) => {
       }
     }
   }
-  res.status(403).send("Cannot find user");
+  res.status(403).send("Email is not registered");
 });
 
 app.post("/logout", (req, res) => {
